@@ -1,7 +1,6 @@
 %% =========================================================
 %  ELEC0145 - Assignment 1 - Task 3: Surgical Planning
 %  Adaptive Surgical Planner: MVEE Ellipsoid Slicing + OBB
-%  =========================================================
 %  PIPELINE:
 %    VerticesUnique (from provided starter code)
 %       -> PCA  (orientation + elongation metric)
@@ -65,7 +64,6 @@ else
     load X.mat; load Y.mat; load Z.mat;
 end
 
-% Reproduce starter code exactly
 [k2_A, V_tumour_A] = convhull(X, Y, Z, 'Simplify', true);
 
 Vertices_A = [X(k2_A(:,1)), Y(k2_A(:,1)), Z(k2_A(:,1));
@@ -89,9 +87,9 @@ X_B = []; Y_B = []; Z_B = [];
 xc_B = 25; yc_B = 25; zc_B = 25;
 a_B = 30; b_B = 5; c_B = 5;
 
-for i = 1:1:50
-    for j = 1:1:50
-        for k = 1:1:50
+for i = floor(xc_B - a_B):ceil(xc_B + a_B)
+    for j = floor(yc_B - b_B):ceil(yc_B + b_B)
+        for k = floor(zc_B - c_B):ceil(zc_B + c_B)
             if ((i-xc_B)^2/a_B^2 + (j-yc_B)^2/b_B^2 + (k-zc_B)^2/c_B^2) < 1
                 X_B = [X_B; i]; %#ok<AGROW>
                 Y_B = [Y_B; j]; %#ok<AGROW>
@@ -101,7 +99,7 @@ for i = 1:1:50
     end
 end
 
-[k2_B, V_tumour_B] = convhull(X_B, Y_B, Z_B, 'Simplify', true);
+[k2_B, V_tumour_B] = convhull(X_B, Y_B, Z_B);
 
 Vertices_B = [X_B(k2_B(:,1)), Y_B(k2_B(:,1)), Z_B(k2_B(:,1));
               X_B(k2_B(:,2)), Y_B(k2_B(:,2)), Z_B(k2_B(:,2));

@@ -44,7 +44,7 @@ VerticesUnique (Nx3)
        |
        v
   Decision Logic
-  F < 2.0 AND E < 4.0?
+  F < 2.0 AND E < 5.0?
       / \
     YES   NO
      |     |
@@ -75,7 +75,7 @@ VerticesUnique (Nx3)
 | Bulk tip width | w_bulk | 7.0 mm | From Task 2 serrated tip dimension |
 | Fine tip width | w_fine | 5.5 mm | From Task 2 smooth tip dimension |
 | Fit ratio threshold | F_thresh | 2.0 | If MVEE volume > 2x tumour, ellipsoid too conservative |
-| Elongation threshold | E_thresh | 4.0 | lambda1/lambda3 > 4 indicates needle-like shape |
+| Elongation threshold | E_thresh | 5.0 | lambda1/lambda3 > 5 indicates elongated/flat shape |
 | DOF 7 stroke limit | d_max | 50 mm | Physical constraint from Task 2 slide mechanism |
 
 ---
@@ -107,62 +107,71 @@ Optimisation problem:
   min_{A,c}  -log det(A)                                           (5)
   s.t.  (v_i - c)^T A (v_i - c) <= 1   for all i = 1..N
 
+Lift data to (d+1)-dimensional space to handle free centre:
+  Q = [P; 1^T]    ((d+1) x N, appending row of ones)              (6)
+
 Khachiyan iterative update (present as Algorithm 1 box):
   1. Initialise: u_i = 1/N for all i
-  2. Compute weighted scatter: S = P * diag(u) * P^T               (6)
-  3. Mahalanobis distances: M_i = p_i^T * S^{-1} * p_i             (7)
+  2. Compute lifted scatter: X = Q * diag(u) * Q^T                 (7)
+  3. Mahalanobis distances: M_i = Q_i^T * X^{-1} * Q_i             (8)
   4. Find j = argmax(M_i)
-  5. Step size: alpha = (M_j - d - 1) / ((d+1)(M_j - 1))          (8)
+  5. Step size: alpha = (M_j - d - 1) / ((d+1)(M_j - 1))          (9)
   6. Update: u <- (1-alpha)*u;  u_j <- u_j + alpha
   7. Converge when M_j - d - 1 < tol*(d+1)
 
-Ellipsoid matrix and centre:
-  A = (P * diag(u) * P^T)^{-1} / d                                (9)
+Ellipsoid centre (weighted mean of points):
   c = P * u                                                        (10)
 
+Centred weighted scatter and ellipsoid matrix:
+  S = P * diag(u) * P^T - c * c^T                                 (11)
+  A = S^{-1} / d                                                   (12)
+
 Semi-axis extraction via eigendecomposition:
-  A = Q * Lambda * Q^T                                             (11)
-  r_k = lambda_k^{-1/2},  k = 1,2,3                               (12)
+  A = Q * Lambda * Q^T                                             (13)
+  r_k = lambda_k^{-1/2},  k = 1,2,3                               (14)
   with r_1 >= r_2 >= r_3
 
 Volume and fit ratio:
-  V_MVEE = (4/3) * pi * r_1 * r_2 * r_3                           (13)
-  F = V_MVEE / V_tumour                                            (14)
+  V_MVEE = (4/3) * pi * r_1 * r_2 * r_3                           (15)
+  F = V_MVEE / V_tumour                                            (16)
 
 ### 2.3 Adaptive Selection Rule (~5% of page)
 
-  if F < F_thresh AND E < E_thresh:  Ellipsoid Slicing             (15)
+  if F < F_thresh AND E < E_thresh:  Ellipsoid Slicing             (17)
   else:  OBB (6-plane resection)
 
 ### 2.4 Ellipsoid Slicing Parameterisation (~25% of page)
 
 Margin expansion:
-  r'_k = r_k + m                                                   (16)
+  r'_k = r_k + m                                                   (18)
 
 Layer count and depths:
-  n_layers = ceil(2*r'_3 / w_bulk)                                 (17)
-  z_k = -r'_3 + (k - 0.5) * w_bulk,  k = 1..n_layers             (18)
+  n_layers = ceil(2*r'_3 / w_bulk)                                 (19)
+  z_k = -r'_3 + (k - 0.5) * w_bulk,  k = 1..n_layers             (20)
 
 Cross-section semi-axes at depth z_k:
-  s_k = sqrt(1 - (z_k / r'_3)^2)                                  (19)
-  a_k = r'_1 * s_k,   b_k = r'_2 * s_k                           (20)
+  s_k = sqrt(1 - (z_k / r'_3)^2)                                  (21)
+  a_k = r'_1 * s_k,   b_k = r'_2 * s_k                           (22)
 
 DOF 7 depth per layer:
-  d_k = r'_3 + z_k                                                 (21)
+  d_k = r'_3 + z_k                                                 (23)
+
+Interior raster: boustrophedon (serpentine) passes parallel to e1,
+stepping along e2 with spacing w_bulk, excluding outermost w_fine strip.
 
 Boundary chord count (Ramanujan perimeter approximation):
-  h = ((a_k - b_k)/(a_k + b_k))^2                                 (22)
-  P_k = pi*(a_k + b_k)*(1 + 3h/(10 + sqrt(4 - 3h)))              (23)
-  n_chords_k = ceil(P_k / w_fine)                                  (24)
+  h = ((a_k - b_k)/(a_k + b_k))^2                                 (24)
+  P_k = pi*(a_k + b_k)*(1 + 3h/(10 + sqrt(4 - 3h)))              (25)
+  n_chords_k = ceil(P_k / w_fine)                                  (26)
 
 World-frame waypoint transformation:
-  p_world = c + Q * [a_k*cos(theta_j);  b_k*sin(theta_j);  z_k]  (25)
+  p_world = c + Q * [a_k*cos(theta_j);  b_k*sin(theta_j);  z_k]  (27)
 
 ### 2.5 OBB Parameterisation (~15% of page)
 
 Box dimensions from PCA projections:
-  L_k = (max_i(v_i . e_k) - min_i(v_i . e_k)) + 2m               (26)
-  V_OBB = L_1 * L_2 * L_3                                         (27)
+  L_k = (max_i(v_i . e_k) - min_i(v_i . e_k)) + 2m               (28)
+  V_OBB = L_1 * L_2 * L_3                                         (29)
 
 6 cutting planes defined by:
   normal n_f, point p_f, in-plane axes u_f / v_f, dimensions
@@ -172,7 +181,7 @@ Box dimensions from PCA projections:
 ## PAGE 3 -- Case A Results (Ellipsoid Slicing)
 
 ### Figure 6: Tumour + MVEE + Resection Ellipsoid + PCA Axes (~45% of page)
-- Source: Fig 1 left subplot from Task3.m
+- Source: Fig 1a from Task3.m (Case A separate figure window)
 - Shows: red tumour vertices, cyan transparent MVEE, blue transparent
   margin-expanded ellipsoid, PCA axes (red/green/blue quivers), black centroid
 - Caption: "Fig. 6. Case A tumour surface vertices with MVEE (cyan) and
@@ -184,7 +193,7 @@ Report the numerical outputs from Case A:
 - Tumour volume, surface area
 - MVEE semi-axes [r1, r2, r3]
 - Fit ratio F (expected < 2.0)
-- Elongation E (expected < 4.0)
+- Elongation E (expected < 5.0)
 - Method selected: Ellipsoid Slicing
 - Number of layers, DOF7 max, feasibility check
 - Resection volume and excess percentage
@@ -203,7 +212,7 @@ Report the numerical outputs from Case A:
 ## PAGE 4 -- Case B Results (OBB) and Comparison
 
 ### Figure 8: Tumour + OBB (~30% of page)
-- Source: Fig 1 right subplot from Task3.m
+- Source: Fig 1b from Task3.m (Case B separate figure window)
 - Shows: red tumour vertices (elongated), blue OBB wireframe edges,
   green raster lines on +e3 face, PCA axes, centroid
 - Caption: "Fig. 8. Case B elongated tumour (a=30, b=5, c=5 mm) with
@@ -212,7 +221,7 @@ Report the numerical outputs from Case A:
 
 ### Results paragraph for Case B (~10% of page)
 Same metrics as Case A but for OBB:
-- F value (expected >= 2.0 or E >= 4.0)
+- F value and E value (E >= 5.0 triggers OBB for elongated tumours)
 - Method selected: OBB
 - 6 cutting planes, 6 robot reorientations
 - DOF7 = h3 for lateral faces, 0 for top/bottom
@@ -231,10 +240,11 @@ Key points to make:
   (faster procedure, less registration error accumulation)
 - Ellipsoid slicing produces lower excess volume for compact tumours
   (more conformal to actual tumour shape)
-- OBB is necessary for elongated tumours where MVEE becomes too
-  conservative (F exceeds threshold)
+- OBB is necessary for elongated tumours where the extreme axis ratio
+  makes ellipsoid cross-sections impractically elongated for cutting
+  (E exceeds threshold, even though F may remain low)
 - The adaptive selection automatically picks the better method based
-  on quantitative shape metrics, not manual judgement
+  on quantitative shape metrics (F and E), not manual judgement
 
 ---
 
@@ -290,6 +300,10 @@ Print the key rows from the MATLAB summary output:
   alpha-shape preprocessing.
 - The tool path assumes rigid bone fixation (no compliance or deflection
   during cutting).
+- The elongation metric E = lambda1/lambda3 cannot distinguish needle-like
+  shapes (one large eigenvalue) from flat disc shapes (one small eigenvalue);
+  both produce high E values. A more refined metric using lambda1/lambda2
+  and lambda2/lambda3 separately could differentiate these cases.
 
 ### Closing statement (~15% of page)
 The adaptive surgical planner automatically selects the resection geometry
@@ -306,9 +320,9 @@ geometries where a tight ellipsoid fit is not achievable.
 | Report Fig | Source | Content |
 |------------|--------|---------|
 | Fig 5 | Hand-drawn or generated | Algorithm flowchart |
-| Fig 6 | Task3.m Fig 1 left | Case A: tumour + MVEE + resection ellipsoid |
+| Fig 6 | Task3.m Fig 1a | Case A: tumour + MVEE + resection ellipsoid |
 | Fig 7 | Task3.m Fig 3 | Case A: 3 layer cross-sections |
-| Fig 8 | Task3.m Fig 1 right | Case B: tumour + OBB wireframe |
+| Fig 8 | Task3.m Fig 1b | Case B: tumour + OBB wireframe |
 | Fig 9 | Task3.m Fig 4 | 2x2 comparison bar charts |
 
 Total: 5 figures across 5 pages (1 per page average).
@@ -318,12 +332,12 @@ Figure numbering continues from Task 2 (assumes Task 2 used Figs 1-4).
 
 ## Equations Summary
 
-27 numbered equations across Page 2, covering:
+29 numbered equations across Page 2, covering:
 - PCA: equations 1-4
-- MVEE: equations 5-14
-- Decision: equation 15
-- Ellipsoid slicing: equations 16-25
-- OBB: equations 26-27
+- MVEE: equations 5-16 (including lifted coordinates and centred scatter)
+- Decision: equation 17
+- Ellipsoid slicing: equations 18-27 (including boustrophedon raster)
+- OBB: equations 28-29
 
 ---
 
