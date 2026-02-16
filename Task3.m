@@ -128,20 +128,15 @@ results_B = run_surgical_planner(VerticesUnique_B, V_tumour_B, surfArea_B, param
 %  FIGURES
 %  =========================================================
 
-%% Figure 1: Side-by-side tumour + resection volume + PCA axes
-figure('Name', 'Fig 1 - Tumour and Resection Volumes', ...
-       'Color', 'w', 'Position', [50 50 1300 550]);
-
-% Case A
-subplot(1, 2, 1);
+%% Figure 1a: Case A - Tumour + resection volume + PCA axes
+figure('Name', 'Fig 1a - Case A Tumour and Resection Volume', ...
+       'Color', 'w', 'Position', [50 50 700 600]);
 plot_resection_volume(VerticesUnique_A, results_A, 'Case A (Ellipsoid Slicing)');
 
-% Case B
-subplot(1, 2, 2);
+%% Figure 1b: Case B - Tumour + resection volume + PCA axes
+figure('Name', 'Fig 1b - Case B Tumour and Resection Volume', ...
+       'Color', 'w', 'Position', [800 50 700 600]);
 plot_resection_volume(VerticesUnique_B, results_B, 'Case B (OBB)');
-
-sgtitle('Fig 1: Tumour Surface Vertices, PCA Axes, and Selected Resection Volume', ...
-        'FontSize', 12, 'FontWeight', 'bold');
 
 %% Figure 2: Slice planes through ellipsoid (Case A)
 if strcmp(results_A.method, 'ellipsoid')
