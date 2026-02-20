@@ -300,7 +300,10 @@ results.V         = V;
 % PCA
 centroid = mean(V, 1);
 V0 = V - centroid;
-[coeff, score, latent] = pca(V0);
+% Manual PCA via SVD (avoids Statistics Toolbox dependency)
+[~, S_svd, coeff] = svd(V0, 'econ');
+score  = V0 * coeff;
+latent = (diag(S_svd).^2) / (size(V0, 1) - 1);
 
 e1 = coeff(:,1)'; e2 = coeff(:,2)'; e3 = coeff(:,3)';
 R_pca = coeff;
