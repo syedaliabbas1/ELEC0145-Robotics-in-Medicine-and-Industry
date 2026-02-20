@@ -3,16 +3,16 @@
 %  Adaptive Surgical Planner: MVEE Ellipsoid Slicing + OBB
 %  PIPELINE:
 %    VerticesUnique (from provided starter code)
-%       -> PCA  (orientation + elongation metric)
-%       -> MVEE (minimum-volume enclosing ellipsoid + fit ratio)
-%       -> Adaptive selection: Ellipsoid Slicing OR OBB
-%       -> DOF 1-6 waypoints + DOF 7 depth schedule + tip selection
+%       - PCA  (orientation + elongation metric)
+%       - MVEE (minimum-volume enclosing ellipsoid + fit ratio)
+%       - Adaptive selection: Ellipsoid Slicing OR OBB
+%       - DOF 1-6 waypoints + DOF 7 depth schedule + tip selection
 %
 %  TWO CASES DEMONSTRATED:
 %    Case A: Loaded X/Y/Z data (roughly ellipsoidal tumour)
-%            -> Algorithm selects ELLIPSOID SLICING
+%            - Algorithm selects ELLIPSOID SLICING
 %    Case B: Synthetic elongated tumour (a=30, b=5, c=5)
-%            -> Algorithm selects OBB
+%            - Algorithm selects OBB
 %  =========================================================
 
 clear; close all; clc;
@@ -38,7 +38,7 @@ fprintf('============================================================\n\n');
 %% =========================================================
 %  SECTION 1A: CASE A - Load provided data (starter code)
 %  =========================================================
-fprintf('--- CASE A: Loading provided tumour data ---\n');
+fprintf('CASE A: Loading provided tumour data\n');
 
 Choice = 2;
 
@@ -81,7 +81,7 @@ fprintf('  Surface:  %.2f mm^2\n\n', surfArea_A);
 %% =========================================================
 %  SECTION 1B: CASE B - Synthetic elongated tumour
 %  =========================================================
-fprintf('--- CASE B: Generating elongated tumour (a=30, b=5, c=5) ---\n');
+fprintf('CASE B: Generating elongated tumour (a=30, b=5, c=5)\n');
 
 X_B = []; Y_B = []; Z_B = [];
 xc_B = 25; yc_B = 25; zc_B = 25;
@@ -116,7 +116,7 @@ fprintf('  Surface:  %.2f mm^2\n\n', surfArea_B);
 %  RUN FULL PLANNING PIPELINE FOR BOTH CASES
 %  =========================================================
 fprintf('============================================================\n');
-fprintf('  Running planning pipeline...\n');
+fprintf('  Running planning pipeline\n');
 fprintf('============================================================\n\n');
 
 results_A = run_surgical_planner(VerticesUnique_A, V_tumour_A, surfArea_A, params, 'Case A');
@@ -171,14 +171,12 @@ print_summary(results_A, results_B, params);
 
 
 %% =========================================================
-%  =================== FUNCTIONS ==========================
+%  FUNCTIONS 
 %  =========================================================
 
-%% ---------------------------------------------------------
 function results = run_surgical_planner(V, V_tumour, surfArea, params, caseName)
 %  Core planning pipeline. Takes VerticesUnique as input.
 %  Returns struct with all planning outputs.
-% ---------------------------------------------------------
 
 fprintf('------------------------------------------------------------\n');
 fprintf('  %s\n', caseName);
@@ -693,7 +691,6 @@ else
 
     % Show raster path on largest face
     bp = results.motion(5).bulk_path;
-    fp = results.motion(5).fine_path;
     if ~isempty(bp)
         for pi_idx = 1:size(bp,1)/2
             plot3([bp(2*pi_idx-1,1) bp(2*pi_idx,1)], ...
